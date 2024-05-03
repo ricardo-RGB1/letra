@@ -1,10 +1,30 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { ChevronsLeft, MenuIcon } from "lucide-react";
+import {
+  ChevronsLeft,
+  MenuIcon,
+  Plus,
+  PlusCircle,
+  Search,
+  Settings,
+  Trash,
+} from "lucide-react";
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
 import { usePathname } from "next/navigation";
 import { ElementRef, useEffect, useRef, useState } from "react";
 import { useMediaQuery } from "usehooks-ts";
+import { UserItem } from "./user-item";
+import { Item } from "./item";
+import { useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { toast } from "sonner";
+import { DocumentList } from "./document-list";
+import { TrashBox } from "./trash-box";
 
 /**
  * Renders the navigation component.
@@ -16,6 +36,7 @@ import { useMediaQuery } from "usehooks-ts";
 export const Navigation = () => {
   const pathname = usePathname();
   const isMobile = useMediaQuery("(max-width: 768px)");
+  const newNote = useMutation(api.documents.create); // Create a new document using the create mutation function and the documents API. newNote is a mutation function that creates a new document in the database.
 
   const isResizingRef = useRef(false);
   const sidebarRef = useRef<ElementRef<"aside">>(null);
@@ -108,9 +129,6 @@ export const Navigation = () => {
     }
   };
 
-
-
-
   // Create the useEffects that will handle the sidebar and navbar resizing and collapsing
   // Collapse the sidebar when the screen size changes
   useEffect(() => {
@@ -127,6 +145,21 @@ export const Navigation = () => {
       collapseWidth();
     }
   }, [pathname, isMobile]);
+
+  // Handle the creation of a new note:
+  // Create a new note with the title "Untitled"
+  // Display a toast message while creating the note
+  const handleNewNote = () => {
+    // Create a new note with the title "Untitled"
+    const promise = newNote({ title: "Untitled" });
+
+    toast.promise(promise, {
+      // Display a toast message while creating the note
+      loading: "Creating a new note...",
+      success: "Note created!",
+      error: "Failed to create a note. Please try again.",
+    });
+  };
 
   return (
     <>
@@ -149,10 +182,30 @@ export const Navigation = () => {
           <ChevronsLeft className="w-6 h-6" />
         </div>
         <div>
-          <p>Action items</p>
+          {/* RENDER THE ITEMS AND NOTES'S LIST */}
+          <UserItem />
+          <Item label="Search" icon={Search} isSearch onClick={() => {}} />
+          <Item label="Settings" icon={Settings} isSearch onClick={() => {}} />
+          <Item onClick={handleNewNote} label="New page" icon={PlusCircle} />
         </div>
+        {/* THE LIST OF NOTES */}
         <div className="mt-4">
-          <p>Documents</p>
+          <DocumentList />
+
+          <Item onClick={handleNewNote} icon={Plus} label="New note" />
+
+          <Popover>
+            <PopoverTrigger className="w-full mt-4">
+              <Item label="Trash" icon={Trash} />
+            </PopoverTrigger>
+            <PopoverContent
+              className="p-0 w-72"
+              side={isMobile ? "bottom" : "right"}
+            >
+              <TrashBox />
+            </PopoverContent>
+          </Popover>
+          
         </div>
         {/* This is the resize sidebar */}
         <div
