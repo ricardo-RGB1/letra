@@ -19,6 +19,27 @@ async function getUserId(ctx: any): Promise<string> {
   return identity.subject;
 }
 
+
+/**
+ * Retrieves the documents that belong to the current user.
+ * @returns A promise that resolves to an array of documents.
+ * @throws Error if the user is not authenticated.
+ */
+export const get = query({
+  handler: async (ctx) => {
+     const identity = await ctx.auth.getUserIdentity();
+     if (!identity) {
+       throw new Error("Unauthorized");
+     }
+
+     const documents = await ctx.db.query("documents");
+
+     return documents; 
+  },
+});
+
+
+
 export const archive = mutation({
   args: { id: v.id("documents") },
   handler: async (ctx, args) => {
@@ -104,6 +125,12 @@ export const getSidebar = query({
     return documents; // Return the documents
   },
 });
+
+
+
+
+
+
 
 /**
  * Creates a new document in the database.
@@ -263,8 +290,6 @@ export const getSearch = query({
 
 
 
-
-
 /**
  * Retrieves a document by its ID.
  * 
@@ -278,8 +303,9 @@ export const getById = query({
     const identity = await ctx.auth.getUserIdentity();
 
     // Get the document with the specified ID from the database
-    const document = await ctx.db.get(args.documentId);
+    const document = await ctx.db.get(args.documentId); 
 
+    // Check if the document exists
     if (!document) {
       throw new Error("Document not found");
     }
@@ -370,3 +396,40 @@ export const updateDocument = mutation({
 
   },
 });
+
+
+
+export const removeIcon = mutation({
+  args: { id: v.id("documents") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+    const userId = identity.subject;
+
+    // Get the document with the specified ID
+    const existingDocument = await ctx.db.get(args.id);
+
+    if (!existingDocument) {
+      throw new Error("Document not found");
+    }
+
+    // Check if the document belongs to the user
+    if (existingDocument.userId !== userId) {
+      throw new Error("Unauthorized");
+    }
+
+    // Update the document to remove the icon
+    const document = await ctx.db.patch(args.id, {
+      icon: undefined, // Remove the icon
+    });
+
+    return document; // Return the updated document
+
+  }
+})
+
+
+
+ 

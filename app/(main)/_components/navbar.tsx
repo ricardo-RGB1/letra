@@ -14,20 +14,12 @@ interface NavbarProps {
   onResetWidth: () => void;
 }
 
-/**
- * Renders the Navbar component.
- *
- * @param {Object} props - The component props.
- * @param {boolean} props.isCollapsed - Indicates whether the sidebar is collapsed.
- * @param {Function} props.onResetWidth - The function to reset the width of the sidebar.
- * @returns {JSX.Element} The rendered Navbar component.
- */
+// Navbar component that displays the title and menu of the document
 export const Navbar = ({ isCollapsed, onResetWidth }: NavbarProps) => {
   const params = useParams();
 
   // Fetch the document with the specified ID
   const document = useQuery(api.documents.getById, {
-    // params.documentId is a string, but the getById query expects an Id<"documents"> type so we need to cast it to the correct type
     documentId: params.documentId as Id<"documents">,
   });
 
