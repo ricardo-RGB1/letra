@@ -69,6 +69,8 @@ export const archive = mutation({
   },
 });
 
+
+
 /**
  * Retrieves the sidebar documents based on the provided parent document ID.
  * getSidebar is an API function that retrieves the documents that belong to the current user and have the specified parent document ID.
@@ -175,27 +177,24 @@ export const restore = mutation({
       throw new Error("Unauthorized");
     }
 
-
-
-
     /**
      * Restores a document and its children recursively.
      * @param documentId The ID of the document to restore.
      */
     const recursiveRestore = async (documentId: Id<"documents">) => {
       const children = await ctx.db
-      .query("documents")
-      .withIndex("by_user_parent", (q) => (
-        q.eq("userId", userId).eq("parentDocument", documentId)
-      ))
-      .collect();
+        .query("documents")
+        .withIndex("by_user_parent", (q) =>
+          q.eq("userId", userId).eq("parentDocument", documentId)
+        )
+        .collect();
 
       // Restore the children recursively
       for (const child of children) {
         await ctx.db.patch(child._id, { isArchived: false });
         await recursiveRestore(child._id);
       }
-    }
+    };
 
     // Restore the document by setting isArchived to false
     // Partial<Doc<"documents">> is used to allow only a subset of the document fields to be updated
@@ -219,15 +218,13 @@ export const restore = mutation({
   },
 });
 
-
-
 export const remove = mutation({
-  args: { id: v.id("documents")},
+  args: { id: v.id("documents") },
   handler: async (ctx, args) => {
     const userId = await getUserId(ctx);
 
     // Get the document with the specified ID
-    const existingDocument = await ctx.db.get(args.id); 
+    const existingDocument = await ctx.db.get(args.id);
 
     if (!existingDocument) {
       throw new Error("Document not found");
@@ -241,5 +238,135 @@ export const remove = mutation({
     const document = await ctx.db.delete(args.id);
 
     return document; // Return the deleted document
-  }
-})
+  },
+});
+
+/**
+ * Retrieves the search results based on the provided query.
+ * @param {object} ctx - The context object.
+ * @returns {Promise<Array<object>>} - A promise that resolves to an array of documents.
+ */
+export const getSearch = query({
+  handler: async (ctx) => {
+    const userId = await getUserId(ctx);
+
+    const documents = await ctx.db
+      .query("documents")
+      .withIndex("by_user", (q) => q.eq("userId", userId)) // Filter by user ID
+      .filter((q) => q.eq(q.field("isArchived"), false)) // Filter out archived documents
+      .order("desc") // Order the documents in descending order
+      .collect(); // Collect the documents
+
+    return documents; // Return the documents
+  },
+});
+
+
+
+
+
+/**
+ * Retrieves a document by its ID.
+ * 
+ * @param {string} documentId - The ID of the document to retrieve.
+ * @returns {Promise<Document>} - A promise that resolves to the retrieved document.
+ * @throws {Error} - If the document is not found, the user is unauthorized, or the document does not belong to the user.
+ */
+export const getById = query({
+  args: { documentId: v.id("documents") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+
+    // Get the document with the specified ID from the database
+    const document = await ctx.db.get(args.documentId);
+
+    if (!document) {
+      throw new Error("Document not found");
+    }
+
+    // Check if the document is published and not archived so user can view it
+    if (document.isPublished && !document.isArchived) {
+      return document;
+    }
+
+    // Check if the user is authenticated
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
+    // Get the user ID  from the identity object
+    const userId = identity.subject;
+
+
+    // Check if the document belongs to the user
+    if(document.userId !== userId) {
+      throw new Error("Unauthorized");
+    }
+
+    return document;
+
+
+  },
+});
+
+
+
+
+
+/**
+ * Updates a document with the specified ID.
+ * 
+ * @param {string} id - The ID of the document to update.
+ * @param {string} [title] - The new title of the document (optional).
+ * @param {string} [content] - The new content of the document (optional).
+ * @param {string} [coverImage] - The new cover image of the document (optional).
+ * @param {string} [icon] - The new icon of the document (optional).
+ * @param {boolean} [isPublished] - The new published status of the document (optional).
+ * 
+ * @returns {Promise<Document>} - The updated document.
+ * @throws {Error} - If the user is not authenticated, the document is not found, or the user is not authorized.
+ */
+export const updateDocument = mutation({
+  args: { 
+    id: v.id("documents"),
+    title: v.optional(v.string()),
+    content: v.optional(v.string()),
+    coverImage: v.optional(v.string()),
+    icon: v.optional(v.string()),
+    isPublished: v.optional(v.boolean()),
+   },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+ 
+    // Check if the user is authenticated
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
+    // Get the user ID from the identity object
+    const userId = identity.subject;
+
+// Destructure the args object to get the document ID and the rest of the fields
+    const { id, ...rest } = args; 
+
+    // Get the document with the specified ID
+    const existingDocument = await ctx.db.get(args.id); 
+
+
+    if(!existingDocument) {
+      throw new Error("Document not found");
+    }
+
+
+    // Check if the document belongs to the user
+    if(existingDocument.userId !== userId) {
+      throw new Error("Unauthorized");
+    }
+
+    // Update the document with the new fields
+    const updatedDocument = await ctx.db.patch(args.id, rest);
+
+    return updatedDocument; // Return the updated document
+
+  },
+});
