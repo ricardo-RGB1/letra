@@ -64,9 +64,7 @@ export const Item = ({
     if (!id) return; // Return if the ID is not present
     // Archive the document
     const promise = archive({ id })
-      .then(() => {
-        toast("Document archived successfully.");
-      })
+      .then(() => router.push("/documents")) // Redirect to the documents page
       .catch((error) => {
         // Handle any errors
         toast.error(`Failed to archive document: ${error.message}`);
@@ -92,12 +90,11 @@ export const Item = ({
     // the id here references the parentDocument
     const promise = create({ title: "Untitled", parentDocument: id }).then(
       (documentId) => {
-        // The documentId is the new document created
         if (!expanded) {
           onExpand?.(); // Call the onExpand function if it exists
         }
         // Redirect to the new document
-        // router.push(`/documents/${documentId}`);
+        router.push(`/documents/${documentId}`);
       }
     );
     toast.promise(promise, {
@@ -135,7 +132,7 @@ export const Item = ({
       {documentIcon ? (
         <div className="shrink-0 mr-2 text-[18px]">{documentIcon}</div>
       ) : (
-        <Icon className="shrink-0 h-[18px] mr-2 text-muted-foreground" />
+        <Icon className="shrink-0 h-[18px] w-[18px] mr-2 text-muted-foreground" />
       )}
 
       <span className="truncate">{label}</span>

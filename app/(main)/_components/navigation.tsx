@@ -16,7 +16,7 @@ import {
   PopoverContent,
 } from "@/components/ui/popover";
 
-import { useParams, usePathname } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import { ElementRef, useEffect, useRef, useState } from "react";
 import { useMediaQuery } from "usehooks-ts";
 import { UserItem } from "./user-item";
@@ -38,6 +38,7 @@ import { Navbar } from "./navbar";
  */
 
 export const Navigation = () => {
+  const router = useRouter(); // Get the router object from the useRouter hook
   const settings = useSettings(); // Get the settings state from the useSettings hook
   const search = useSearch(); // Get the search state from the useSearch hook
   const pathname = usePathname();
@@ -158,7 +159,9 @@ export const Navigation = () => {
   // Display a toast message while creating the note
   const handleNewNote = () => {
     // Create a new note with the title "Untitled"
-    const promise = newNote({ title: "Untitled" });
+    const promise = newNote({ title: "Untitled" }).then((documentId) =>
+      router.push(`/documents/${documentId}`)
+    );
 
     toast.promise(promise, {
       // Display a toast message while creating the note

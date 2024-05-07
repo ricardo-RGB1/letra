@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api"; 
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 
 /**
@@ -18,14 +19,15 @@ import { toast } from "sonner";
 const DocumentsPage = () => {
     const { user } = useUser(); 
     const newDocument = useMutation(api.documents.create);
-
+    const router = useRouter();
     
     // Additional action when creating a new document
     // This function creates a new document with the title "Untitled"
     // It also displays a toast notification to indicate the status of the operation
     const onCreateDocument = () => {
         // Create a new document with the title "Untitled"
-        const promise = newDocument({ title: "Untitled" }); 
+        const promise = newDocument({ title: "Untitled" })
+            .then((documentId) => router.push(`/documents/${documentId}`) )
 
         toast.promise(promise, {
             loading: 'Creating a new note...',

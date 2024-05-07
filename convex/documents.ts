@@ -432,4 +432,42 @@ export const removeIcon = mutation({
 
 
 
+
+/**
+ * Removes the cover image from a document.
+ * 
+ * @param {string} id - The ID of the document to remove the cover image from.
+ * @returns {Promise<Document>} - A promise that resolves to the updated document without the cover image.
+ * @throws {Error} - If the user is unauthorized or the document is not found.
+ */
+export const removeCoverImage = mutation({
+  args: { id: v.id("documents") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+    const userId = identity.subject;
+
+    // Get the document with the specified ID
+    const existingDocument = await ctx.db.get(args.id);
+
+    if (!existingDocument) {
+      throw new Error("Document not found");
+    }
+
+    // Check if the document belongs to the user
+    if (existingDocument.userId !== userId) {
+      throw new Error("Unauthorized");
+    }
+
+    // Update the document to remove the cover image
+    const document = await ctx.db.patch(args.id, {
+      coverImage: undefined, // Remove the cover image
+    });
+
+    return document; // Return the updated document
+  }
+})
  
